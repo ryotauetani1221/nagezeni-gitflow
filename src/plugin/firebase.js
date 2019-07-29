@@ -9,3 +9,10 @@ const firebaseConfig = {
     appId: process.env.VUE_APP_appId
 };
 firebase.initializeApp(firebaseConfig);
+
+export default function (userMail, userPassword) {
+    return firebase
+        .auth()
+        .createUserWithEmailAndPassword(userMail, userPassword)
+        .catch(err => alert(err));
+}

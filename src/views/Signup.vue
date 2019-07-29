@@ -30,6 +30,7 @@
 
 <script>
 import firebase from "firebase";
+import signup from "../plugin/firebase.js";
 export default {
   name: "Login",
   data: function() {
@@ -40,25 +41,21 @@ export default {
     };
   },
   methods: {
-    signup: function() {
-      firebase
-        .auth()
-        .createUserWithEmailAndPassword(this.userMail, this.userPassword)
-        .then(user => {
-          console.log("Create account: ", user);
-          const firebaseDB = firebase.firestore();
-          firebaseDB
-            .collection("users")
-            .doc(this.userMail)
-            .set({
-              name: this.userName,
-              money: 500
-            });
-          this.$router.push("/admin");
-        })
-        .catch(error => {
-          alert(error.message);
+    async signup() {
+      const firebaseSignup = await signup(this.userMail, this.userPassword);
+      if (firebaseSignup && firebaseSignup.operationType === "signIn") {
+        console.log("Create account: ", firebaseSignup.user.email);
+        const firebaseDB = firebase.firestore();
+        firebaseDB.collection("users").add({
+          user_id: firebaseSignup.user.uid,
+          name: this.userName
         });
+        firebaseDB.collection("wallet").add({
+          user_id: firebaseSignup.user.uid,
+          name: 500
+        });
+        this.$router.push("/admin");
+      }
     }
   }
 };
