@@ -1,12 +1,11 @@
 import firebase from 'firebase'
-
 const firebaseConfig = {
-    apiKey: "AIzaSyB7vjVp-_PxmWDDqtg1R_wSy27031iUehs",
-    authDomain: "vue-nagezeni.firebaseapp.com",
-    databaseURL: "https://vue-nagezeni.firebaseio.com",
-    projectId: "vue-nagezeni",
-    storageBucket: "",
-    messagingSenderId: "764937800237",
-    appId: "1:764937800237:web:a0be24a8f5cdefa5"
+    apiKey: process.env.VUE_APP_apiKey,
+    authDomain: process.env.VUE_APP_authDomain,
+    databaseURL: process.env.VUE_APP_databaseURL,
+    projectId: process.env.VUE_APP_projectId,
+    storageBucket: process.env.VUE_APP_storageBucket,
+    messagingSenderId: process.env.VUE_APP_messagingSenderId,
+    appId: process.env.VUE_APP_appId
 };
 firebase.initializeApp(firebaseConfig);
