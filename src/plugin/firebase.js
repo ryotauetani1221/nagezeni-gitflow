@@ -10,9 +10,11 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 
-export default function (userMail, userPassword) {
-    return firebase
-        .auth()
-        .createUserWithEmailAndPassword(userMail, userPassword)
-        .catch(err => alert(err));
-}
+export const firebaseDB = firebase.firestore();
+
+// export default function (userMail, userPassword) {
+//     return firebase
+//         .auth()
+//         .createUserWithEmailAndPassword(userMail, userPassword)
+//         .catch(err => alert(err));
+// }

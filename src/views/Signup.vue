@@ -30,7 +30,7 @@
 
 <script>
 import firebase from "firebase";
-import signup from "../plugin/firebase.js";
+import { firebaseDB } from "../plugin/firebase.js";
 export default {
   name: "Login",
   data: function() {
@@ -42,10 +42,12 @@ export default {
   },
   methods: {
     async signup() {
-      const firebaseSignup = await signup(this.userMail, this.userPassword);
+      const firebaseSignup = await firebase
+        .auth()
+        .createUserWithEmailAndPassword(this.userMail, this.userPassword)
+        .catch(err => alert(err));
       if (firebaseSignup && firebaseSignup.operationType === "signIn") {
         console.log("Create account: ", firebaseSignup.user.email);
-        const firebaseDB = firebase.firestore();
         firebaseDB.collection("users").add({
           user_id: firebaseSignup.user.uid,
           name: this.userName
