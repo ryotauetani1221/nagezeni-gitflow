@@ -54,7 +54,7 @@ export default {
         });
         firebaseDB.collection("wallet").add({
           user_id: firebaseSignup.user.uid,
-          name: 500
+          wallet: 500
         });
         this.$router.push("/admin");
       }
