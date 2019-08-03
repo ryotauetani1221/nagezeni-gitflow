@@ -2,7 +2,7 @@
   <div class="admin">
     <div>
       <span>{{computedGetLoginUserDataName}}さんようこそ！</span>
-      <span style="float:right;">残高：{{computedGetLoginUserDataMoney}}</span>
+      <span style="float:right;">残高：{{computedGetLoginUserDataWallet}}</span>
     </div>
     <h1>ユーザー一覧</h1>
     <table>
@@ -15,7 +15,7 @@
           <button @click="showWallet(index)">Walletを見る</button>
         </td>
         <td>
-          <button @click="showSendWallet(item.name)">送る</button>
+          <button @click="showSendWallet(item.id)">送る</button>
         </td>
       </tr>
     </table>
@@ -30,10 +30,10 @@
     <div class="fixedWrap" v-show="isShowSendWallet">
       <div class="fixedBg" @click="closeSendWallet"></div>
       <div class="showWallet">
-        <p>あなたの残高：{{computedGetLoginUserDataMoney}}</p>
+        <p>あなたの残高：{{computedGetLoginUserDataWallet}}</p>
         <p>送る金額↓</p>
         <p>
-          <input type="text" v-model="sendMoneyPrice" />
+          <input type="text" v-model="sendWalletPrice" />
           <button @click="sendWallet">送信</button>
         </p>
         <button @click="closeSendWallet">閉じる</button>
@@ -77,7 +77,7 @@
 
 
 <script>
-import firebase from "firebase";
+import { firebaseAuth } from "../plugin/firebase";
 export default {
   name: "Admin",
   data: function() {
@@ -86,7 +86,7 @@ export default {
       isShowSelectWallet: false,
       selectUserWallet: "",
       selectUserName: "",
-      sendMoneyPrice: ""
+      sendWalletPrice: ""
     };
   },
   computed: {
@@ -96,49 +96,43 @@ export default {
     computedGetLoginUserDataName: function() {
       return this.$store.state.userDataName;
     },
-    computedGetLoginUserDataMoney: function() {
-      return this.$store.state.userDataMoney;
+    computedGetLoginUserDataWallet: function() {
+      return this.$store.state.userDataWallet;
     }
   },
   async created() {
     this.$store.commit("setLoginUser");
-    this.$store.dispatch("getUserDataList");
-    this.$store.dispatch("getLoginUserData");
+    this.$store.dispatch("startVuexGetData");
   },
   methods: {
     showWallet: function(index) {
       this.isShowSelectWallet = true;
       this.selectUserName = this.computedGetUserDataList[index].name;
-      this.selectUserWallet = this.computedGetUserDataList[index].money;
+      this.selectUserWallet = this.computedGetUserDataList[index].wallet;
     },
     closeWallet: function() {
       this.isShowSelectWallet = false;
     },
-    showSendWallet: function(sendName) {
+    showSendWallet: function(sendId) {
       this.isShowSendWallet = true;
-      this.$store.commit("setSelectSendUserName", sendName);
+      this.$store.commit("setSelectSendUserId", sendId);
     },
     closeSendWallet: function() {
       this.isShowSendWallet = false;
     },
     sendWallet: function() {
       this.isShowSendWallet = false;
-      this.$store.dispatch("sendWallet");
-      this.$store.commit("setSendMoneyPrice", this.sendMoneyPrice);
-    },
-    logout: function() {
-      firebase.auth().onAuthStateChanged(user => {
-        firebase
-          .auth()
-          .signOut()
-          .then(() => {
-            console.log(user + "はログアウトしました");
-            this.$router.push("/");
-          })
-          .catch(error => {
-            console.log(`ログアウト時にエラーが発生しました (${error})`);
-          });
+      this.$store.dispatch("sendWallet", {
+        sendWalletPrice: this.sendWalletPrice
       });
+    },
+    async logout() {
+      await firebaseAuth
+        .signOut()
+        .catch(error =>
+          console.log(`ログアウト時にエラーが発生しました (${error})`)
+        );
+      // ログアウト後のtopページへの遷移は、main.jsが担当
     }
   }
 };

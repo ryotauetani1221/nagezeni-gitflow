@@ -1,100 +1,126 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
-import firebase from "firebase";
+import './plugin/firebase'
+import { firebaseDB , firebaseAuth } from "./plugin/firebase.js";
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
     user: {},
+    userDataId: "",
     userDataName: "",
-    userDataMoney: "",
+    userDataWallet: "",
     userList: [],
-    selectSendUserName: "",
-    selectSendUserEmail: "",
-    selectSendUserMoney: "",
-    sendMoneyPrice: ""
+    selectSendUserId: "",
   },
   mutations: {
     setLoginUser(state) {
-      state.user = firebase.auth().currentUser;
+      state.user = firebaseAuth.currentUser;
+    },
+    setLoginUserDataId(state, id) {
+      state.userDataId = id;
     },
     setLoginUserDataName(state, name) {
       state.userDataName = name;
     },
-    setLoginUserDataMoney(state, money) {
-      state.userDataMoney = money;
+    setLoginUserDataWallet(state, wallet) {
+      state.userDataWallet = wallet;
     },
     setUserDataList(state, dataList) {
       state.userList = dataList;
     },
-    setSelectSendUserName(state, sendUserName) {
-      state.selectSendUserName = sendUserName;
+    setSelectSendUserId(state, sendUserId) {
+      state.selectSendUserId = sendUserId;
     },
-    setSelectSendUserEmail(state, sendUserEmail) {
-      state.selectSendUserEmail = sendUserEmail;
-    },
-    setSelectSendUserMoney(state, sendUserMoney) {
-      state.selectSendUserMoney = sendUserMoney;
-    },
-    setSendMoneyPrice(state, sendMoneyPrice) {
-      state.sendMoneyPrice = sendMoneyPrice;
+    setSendWalletPrice(state, sendWalletPrice) {
+      state.sendWalletPrice = sendWalletPrice;
     }
   },
   actions: {
-    // ログインしているユーザーデータの取得
-    async getLoginUserData() {
-      const userEmail = this.state.user.email;
-      const firebaseDB = firebase.firestore();
-      const getUserDB = firebaseDB.collection("users").doc(userEmail);
-      const getUserData = await getUserDB.get();
-      this.commit('setLoginUserDataName', getUserData.data().name);
-      this.commit('setLoginUserDataMoney', getUserData.data().money);
-    },
-    // 全ユーザーデータの取得
-    async getUserDataList() {
-      const firebaseDB = firebase.firestore();
-      const getUserDB = firebaseDB.collection("users");
-      const getUserData = await getUserDB.get();
-      let userDataList = [];
-      getUserData.forEach(doc => {
-        if (doc.id !== this.state.user.email) {
-          userDataList.push(doc.data());
+    // 全部のデータ取得、ログインしているユーザーデータの取得
+    async startVuexGetData() {
+
+      this.commit('setLoginUserDataId', this.state.user.uid);
+
+      let userIdList = [];
+      let userNameList = [];
+      const snapShotUsers = await firebaseDB.collection("users").get();
+      snapShotUsers.forEach(doc => {
+        userNameList.push(doc.data().name);
+        userIdList.push(doc.data().user_id);
+        if (this.state.user.uid === doc.data().user_id) {
+          this.commit('setLoginUserDataName', doc.data().name);
         }
       });
+
+      let userWalletList = [];
+      const snapShotWallet = await firebaseDB.collection("wallet").get();
+      snapShotWallet.forEach(doc => {
+        userWalletList.push(doc.data().wallet);
+        if (this.state.user.uid === doc.data().user_id) {
+          this.commit('setLoginUserDataWallet', doc.data().wallet);
+        }
+      });
+
+      let userDataList = [];
+      for (let i = 0; i < userNameList.length; i++) {
+        userDataList[i] = {
+          id: userIdList[i],
+          name: userNameList[i],
+          wallet: userWalletList[i],
+        };
+      }
+
       this.commit('setUserDataList', userDataList);
     },
     // ウォレットを送信
-    async sendWallet() {
-      const firebaseDB = firebase.firestore();
-      const getUserDB = firebaseDB.collection("users");
-      const getUserData = await getUserDB.get();
+    async sendWallet({ state, commit, dispatch }, data) {
 
-      getUserData.forEach(doc => {
-        if (this.state.selectSendUserName === doc.data().name) {
-          this.commit("setSelectSendUserEmail", doc.id);
-          this.commit("setSelectSendUserMoney", doc.data().money);
+      console.log(state);
+      console.log(commit);
+      console.log(dispatch);
+
+      const sendWalletPrice = data.sendWalletPrice;
+      let sendUserOldWallet;
+      this.state.userList.forEach(item => {
+        if (this.state.selectSendUserId === item.id) {
+          this.commit("setSelectSendUserId", item.id);
+          sendUserOldWallet = item.wallet;
         }
       });
 
-      // 選んだユーザーにウォレットを増やす
+
+      const firebaseWallet = await firebaseDB.collection("wallet").get();
+
+      let recipientUserCollection;
+      let sendUserCollection;
+      firebaseWallet.forEach(doc => {
+        if (this.state.selectSendUserId === doc.data().user_id) {
+          recipientUserCollection = doc.id;
+        }
+        if (this.state.userDataId === doc.data().user_id) {
+          sendUserCollection = doc.id;
+        }
+      });
+
+      // 送る分のウォレットを相手のデータに加える
       const recipientUserDataArray = {
-        money: Number(this.state.selectSendUserMoney) + Number(this.state.sendMoneyPrice),
-        name: this.state.selectSendUserName
+        wallet: Number(sendUserOldWallet) + Number(sendWalletPrice),
+        user_id: this.state.selectSendUserId
       };
-      await getUserDB.doc(this.state.selectSendUserEmail).set(recipientUserDataArray);
+      await firebaseDB.collection("wallet").doc(recipientUserCollection).set(recipientUserDataArray);
 
       // 送る分のウォレットを自分のウォレットから減らす
       const sendUserDataArray = {
-        money: Number(this.state.userDataMoney) - Number(this.state.sendMoneyPrice),
-        name: this.state.userDataName
+        wallet: Number(this.state.userDataWallet) - Number(sendWalletPrice),
+        user_id: this.state.userDataId
       };
-      await getUserDB.doc(this.state.user.email).set(sendUserDataArray);
+      await firebaseDB.collection("wallet").doc(sendUserCollection).set(sendUserDataArray);
 
-      // admin画面に必要な、データを再度firebaseから読み込み、vuexにデータを配置する
+      // admin画面に必要な、データを再度firebaseから読み込み、vuexにデータを再配置する
       this.commit("setLoginUser");
-      this.dispatch("getUserDataList");
-      this.dispatch("getLoginUserData");
+      this.dispatch("startVuexGetData");
 
     }
   },
