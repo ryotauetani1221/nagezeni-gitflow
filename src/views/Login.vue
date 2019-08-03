@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import firebase from "firebase";
+import { firebaseAuth } from "../plugin/firebase";
 export default {
   name: "Login",
   data: function() {
@@ -33,17 +33,13 @@ export default {
     };
   },
   methods: {
-    login: function() {
-      firebase
-        .auth()
+    async login() {
+      const firebaseLogin = await firebaseAuth
         .signInWithEmailAndPassword(this.userMail, this.userPassword)
-        .then(user => {
-          console.log(user);
-          this.$router.push("/admin");
-        })
-        .catch(error => {
-          alert(error.message);
-        });
+        .catch(error => alert(error.message));
+      if (firebaseLogin && firebaseLogin.operationType === "signIn") {
+        this.$router.push("/admin");
+      }
     }
   }
 };
