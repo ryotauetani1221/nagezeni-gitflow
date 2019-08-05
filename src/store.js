@@ -1,7 +1,7 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import './plugin/firebase'
-import { firebaseDB , firebaseAuth } from "./plugin/firebase.js";
+import { firebaseDB, firebaseAuth } from "./plugin/firebase.js";
 
 Vue.use(Vuex)
 
@@ -45,7 +45,13 @@ export default new Vuex.Store({
 
       let userIdList = [];
       let userNameList = [];
-      const snapShotUsers = await firebaseDB.collection("users").get();
+      let userWalletList = [];
+      // const snapShotUsers = await firebaseDB.collection("users").get();
+      // const snapShotWallet = await firebaseDB.collection("wallet").get();
+      let snapShotUsers = firebaseDB.collection("users").get();
+      let snapShotWallet = firebaseDB.collection("wallet").get();
+      [snapShotUsers, snapShotWallet] = await Promise.all([snapShotUsers, snapShotWallet]);
+
       snapShotUsers.forEach(doc => {
         userNameList.push(doc.data().name);
         userIdList.push(doc.data().user_id);
@@ -54,8 +60,6 @@ export default new Vuex.Store({
         }
       });
 
-      let userWalletList = [];
-      const snapShotWallet = await firebaseDB.collection("wallet").get();
       snapShotWallet.forEach(doc => {
         userWalletList.push(doc.data().wallet);
         if (this.state.user.uid === doc.data().user_id) {
@@ -82,7 +86,7 @@ export default new Vuex.Store({
       console.log(dispatch);
 
       const sendWalletPrice = data.sendWalletPrice;
-      let sendUserOldWallet;
+      let sendUserOldWallet = '';
       this.state.userList.forEach(item => {
         if (this.state.selectSendUserId === item.id) {
           this.commit("setSelectSendUserId", item.id);
@@ -93,8 +97,8 @@ export default new Vuex.Store({
 
       const firebaseWallet = await firebaseDB.collection("wallet").get();
 
-      let recipientUserCollection;
-      let sendUserCollection;
+      let recipientUserCollection = '';
+      let sendUserCollection = '';
       firebaseWallet.forEach(doc => {
         if (this.state.selectSendUserId === doc.data().user_id) {
           recipientUserCollection = doc.id;
@@ -109,14 +113,18 @@ export default new Vuex.Store({
         wallet: Number(sendUserOldWallet) + Number(sendWalletPrice),
         user_id: this.state.selectSendUserId
       };
-      await firebaseDB.collection("wallet").doc(recipientUserCollection).set(recipientUserDataArray);
-
       // 送る分のウォレットを自分のウォレットから減らす
       const sendUserDataArray = {
         wallet: Number(this.state.userDataWallet) - Number(sendWalletPrice),
         user_id: this.state.userDataId
       };
-      await firebaseDB.collection("wallet").doc(sendUserCollection).set(sendUserDataArray);
+
+      // await firebaseDB.collection("wallet").doc(recipientUserCollection).set(recipientUserDataArray);
+      // await firebaseDB.collection("wallet").doc(sendUserCollection).set(sendUserDataArray);
+      const recipientUserDataFunc = firebaseDB.collection("wallet").doc(recipientUserCollection).set(recipientUserDataArray);
+      const sendUserDataFunc = firebaseDB.collection("wallet").doc(sendUserCollection).set(sendUserDataArray);
+      await Promise.all([recipientUserDataFunc, sendUserDataFunc]);
+
 
       // admin画面に必要な、データを再度firebaseから読み込み、vuexにデータを再配置する
       this.commit("setLoginUser");
