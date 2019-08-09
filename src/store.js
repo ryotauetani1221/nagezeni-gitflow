@@ -43,9 +43,9 @@ export default new Vuex.Store({
 
       this.commit('setLoginUserDataId', this.state.user.uid);
 
-      let userIdList = [];
-      let userNameList = [];
-      let userWalletList = [];
+      const userIdList = [];
+      const userNameList = [];
+      const userWalletList = [];
       // const snapShotUsers = await firebaseDB.collection("users").get();
       // const snapShotWallet = await firebaseDB.collection("wallet").get();
       let snapShotUsers = firebaseDB.collection("users").get();
@@ -67,7 +67,7 @@ export default new Vuex.Store({
         }
       });
 
-      let userDataList = [];
+      const userDataList = [];
       for (let i = 0; i < userNameList.length; i++) {
         userDataList[i] = {
           id: userIdList[i],
